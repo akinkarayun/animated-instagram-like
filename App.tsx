@@ -1,5 +1,8 @@
-import React from 'react';
+import React, {useCallback} from 'react';
 import {
+  Dimensions,
+  Image,
+  ImageBackground,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -8,96 +11,104 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-
 import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  GestureHandlerRootView,
+  TapGestureHandler,
+} from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import {LottieAnimation} from './components/LottieAnimation';
 
-const Section: React.FC<{
-  title: string;
-}> = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
+// const AnimatedComponent = Animated.createAnimatedComponent(LottieAnimation);
+
+const App = () => {
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  const doubleTapRef = React.useRef();
+
+  const rStyle = useAnimatedStyle(
+    () => ({
+      transform: [{scale: Math.max(scale.value, 0)}],
+    }),
+    [],
+  );
+  const rStyleOpacity = useAnimatedStyle(
+    () => ({
+      opacity: opacity.value,
+    }),
+    [],
+  );
+
+  const onDoubleTap = useCallback(() => {
+    scale.value = withSpring(1, undefined, isFinished => {
+      if (isFinished) {
+        scale.value = withDelay(500, withSpring(0));
+      }
+    });
+  }, []);
+
+  const onSingleTap = useCallback(() => {
+    opacity.value = withTiming(0, undefined, isFinished => {
+      if (isFinished) {
+        opacity.value = withDelay(500, withTiming(1));
+      }
+    });
+  }, []);
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.container}>
+      <GestureHandlerRootView>
+        <TapGestureHandler waitFor={doubleTapRef} onActivated={onSingleTap}>
+          <TapGestureHandler
+            maxDelayMs={250}
+            ref={doubleTapRef}
+            numberOfTaps={2}
+            onActivated={onDoubleTap}>
+            <Animated.View>
+              <ImageBackground
+                source={require('./assets/image/dog.jpg')}
+                style={styles.image}>
+                <Animated.View style={[styles.image, rStyle]}>
+                  <LottieAnimation />
+                </Animated.View>
+              </ImageBackground>
+              {/* <Animated.View style={[styles.image, rStyleOpacity]}> */}
+              <Animated.Text style={[styles.text, rStyleOpacity]}>
+                Gesture Handler Double and Single Tap
+              </Animated.Text>
+              {/* </Animated.View> */}
+            </Animated.View>
+          </TapGestureHandler>
+        </TapGestureHandler>
+      </GestureHandlerRootView>
     </View>
   );
 };
 
-const App = () => {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
+const {width: SIZE} = Dimensions.get('window');
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  image: {
+    width: SIZE,
+    height: SIZE,
+    alignSelf: 'center',
+    resizeMode: 'contain',
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
+  text: {
+    fontSize: 20,
+    textAlign: 'center',
+    marginTop: 20,
     fontWeight: '700',
   },
 });
